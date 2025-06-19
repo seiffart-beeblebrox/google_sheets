@@ -20,19 +20,28 @@ def log_conversation():
     data = request.get_json()
     summary = data.get("summary", "")
     topic = data.get("topic", "Kein Thema")
+    tab_name = data.get("sheet")  # <-- NEU: Welches Blatt?
+
+    if not summary or not tab_name:
+        return jsonify({"error": "Feld 'summary' und 'sheet' sind erforderlich."}), 400
+
+    # Ziel-Range mit Tabellenblattnamen, z.B. "Instagram!A1"
+    target_range = f"{tab_name}!A1"
 
     values = [[topic, summary]]
     body = {"values": values}
 
-    sheet.append(
-        spreadsheetId=SPREADSHEET_ID,
-        range="A1",
-        valueInputOption="RAW",
-        insertDataOption="INSERT_ROWS",
-        body=body
-    ).execute()
-
-    return jsonify({"status": "OK", "message": "In Google Sheets gespeichert."})
+    try:
+        sheet.append(
+            spreadsheetId=SPREADSHEET_ID,
+            range=target_range,
+            valueInputOption="RAW",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+        return jsonify({"status": "OK", "message": f"In Blatt '{tab_name}' gespeichert."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
